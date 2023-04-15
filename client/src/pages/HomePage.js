@@ -1,9 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { Form, Input, Modal, Select, Table, message, DatePicker } from "antd";
+import {
+  UnorderedListOutlined,
+  AreaChartOutlined,
+  EditOutlined,
+  DeleteOutlined,
+} from "@ant-design/icons";
 import Layout from "../components/Layout/Layout";
 import axios from "axios";
 import Spinner from "../components/Spinner";
 import moment from "moment";
+import Analytics from "../components/Analytics";
 const { RangePicker } = DatePicker;
 
 const HomePage = () => {
@@ -13,6 +20,8 @@ const HomePage = () => {
   const [frequency, setFrequency] = useState("7");
   const [selectedDate, setSelectedDate] = useState([]);
   const [type, setType] = useState("all");
+  const [viewData, setViewData] = useState("table");
+  const [editable, setEditable] = useState(null);
 
   //table data
   const columns = [
@@ -39,6 +48,22 @@ const HomePage = () => {
     },
     {
       title: "Actions",
+      render: (text, record) => (
+        <div>
+          <EditOutlined
+            onClick={() => {
+              setEditable(record);
+              setShowModal(true);
+            }}
+          />
+          <DeleteOutlined
+            className="mx-3"
+            onClick={() => {
+              handleDelete(record);
+            }}
+          />
+        </div>
+      ),
     },
   ];
 
@@ -65,18 +90,48 @@ const HomePage = () => {
     };
     getAllTransaction();
   }, [frequency, selectedDate, type]);
+
+  //delete handler
+  const handleDelete = async (record) => {
+    try {
+      setLoading(true);
+      await axios.post("/transaction/delete-transaction", {
+        transactionId: record._id,
+      });
+      setLoading(false);
+      message.success("Transaction Deleted Successfully");
+    } catch (error) {
+      setLoading(false);
+      console.log(error);
+      message.error("Unable to delete transaction!");
+    }
+  };
+
   //   form handling
   const handleSubmit = async (values) => {
     try {
       const user = JSON.parse(localStorage.getItem("user"));
       setLoading(true);
-      await axios.post("/transaction/add-transaction", {
-        ...values,
-        userid: user._id,
-      });
-      setLoading(false);
-      message.success("Transaction added successfully!");
+      if (editable) {
+        await axios.post("/transaction/edit-transaction", {
+          payload: {
+            ...values,
+            userid: user._id,
+          },
+          transactionId: editable._id,
+        });
+        setLoading(false);
+        message.success("Transaction updated successfully!");
+      } else {
+        await axios.post("/transaction/add-transaction", {
+          ...values,
+          userid: user._id,
+        });
+        setLoading(false);
+        message.success("Transaction added successfully!");
+      }
       setShowModal(false);
+      setEditable(null);
     } catch (error) {
       setLoading(false);
       message.error("Failed to add transaction!");
@@ -115,6 +170,20 @@ const HomePage = () => {
             />
           )}
         </div>
+        <div className="switch-icon">
+          <UnorderedListOutlined
+            className={`mx-2 ${
+              viewData === "table" ? "active-icon" : "inactive-icon"
+            }`}
+            onClick={() => setViewData("table")}
+          />
+          <AreaChartOutlined
+            className={`mx-2 ${
+              viewData === "chart" ? "active-icon" : "inactive-icon"
+            }`}
+            onClick={() => setViewData("chart")}
+          />
+        </div>
         <div>
           <button
             className="btn btn-primary"
@@ -125,15 +194,23 @@ const HomePage = () => {
         </div>
       </div>
       <div className="content">
-        <Table columns={columns} dataSource={allTransaction} />
+        {viewData === "table" ? (
+          <Table columns={columns} dataSource={allTransaction} />
+        ) : (
+          <Analytics allTransaction={allTransaction} />
+        )}
       </div>
       <Modal
-        title="Add Transaction"
+        title={editable ? "Edit Transaction" : "Add Transaction"}
         open={showModal}
         onCancel={() => setShowModal(false)}
         footer={false}
       >
-        <Form layout="vertical" onFinish={handleSubmit}>
+        <Form
+          layout="vertical"
+          onFinish={handleSubmit}
+          initialValues={editable}
+        >
           <Form.Item label="Amount" name="amount" required={true}>
             <Input type="text" />
           </Form.Item>

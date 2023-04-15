@@ -5,7 +5,7 @@
 }
 
 .content {
-  height: 80vh;
+  height: 140vh;
 }
 
 .navbar {
@@ -28,3 +28,24 @@
   box-shadow: 0 0 3px gray;
 }
 /* Transaction page */
+
+/* antd icons */
+
+.switch-icon {
+  border: 1px solid rgba(0, 0, 0, 0.656);
+  border-radius: 5px;
+  padding: 10px 15px;
+}
+
+.anticon svg {
+  font-size: 2opx;
+  cursor: pointer;
+}
+
+.active-icon {
+  color: black;
+}
+
+.inactive-icon {
+  color: gray;
+}
